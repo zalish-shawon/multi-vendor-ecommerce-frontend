@@ -1,24 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { ShoppingCart, Search, Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { AuthService } from '@/services/auth.service';
-import { useEffect, useState } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
+import Link from "next/link";
+import { ShoppingCart, Search, Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AuthService } from "@/services/auth.service";
+import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useCart } from "@/context/CartContext";
 
 export default function Navbar() {
+  const { cartCount } = useCart();
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -35,7 +37,6 @@ export default function Navbar() {
       {/* 1. Alignment Fix: Matches the Hero Section Max-Width */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          
           {/* Logo */}
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <span className="text-2xl font-bold tracking-tighter">
@@ -57,17 +58,28 @@ export default function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative hover:bg-gray-100 rounded-full">
-              <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center">
-                0
-              </span>
-            </Button>
+            <Link href="/cart">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative hover:bg-gray-100 rounded-full"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-600 text-[10px] font-bold text-white flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
 
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full border border-gray-200">
+                  <Button
+                    variant="ghost"
+                    className="relative h-9 w-9 rounded-full border border-gray-200"
+                  >
                     <Avatar className="h-9 w-9">
                       <AvatarImage src={user.profileImg} />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
@@ -77,20 +89,33 @@ export default function Navbar() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      <p className="text-sm font-medium leading-none">
+                        {user.name}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {user.role === 'ADMIN' && (
-                     <DropdownMenuItem asChild><Link href="/admin">Admin Dashboard</Link></DropdownMenuItem>
+                  {user.role === "ADMIN" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">Admin Dashboard</Link>
+                    </DropdownMenuItem>
                   )}
-                  {user.role === 'VENDOR' && (
-                     <DropdownMenuItem asChild><Link href="/vendor">Vendor Dashboard</Link></DropdownMenuItem>
+                  {user.role === "VENDOR" && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/vendor">Vendor Dashboard</Link>
+                    </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild><Link href="/orders">My Orders</Link></DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/orders">My Orders</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 cursor-pointer">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-red-600 cursor-pointer"
+                  >
                     Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -100,7 +125,10 @@ export default function Navbar() {
                 <Button asChild variant="ghost" className="font-medium">
                   <Link href="/login">Sign In</Link>
                 </Button>
-                <Button asChild className="bg-slate-900 hover:bg-slate-800 rounded-full px-6">
+                <Button
+                  asChild
+                  className="bg-slate-900 hover:bg-slate-800 rounded-full px-6"
+                >
                   <Link href="/register">Join Free</Link>
                 </Button>
               </div>
