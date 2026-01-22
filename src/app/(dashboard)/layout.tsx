@@ -13,7 +13,9 @@ import {
   Users, 
   LogOut, 
   Menu,
-  Star 
+  Star, 
+  User,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -96,7 +98,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/vendor/reviews', label: 'Reviews', icon: Star },
   ];
 
-  const links = user.role === 'ADMIN' ? adminLinks : vendorLinks;
+const customerLinks = [
+    { label: 'Overview', href: '/customer', icon: LayoutDashboard }, // Changed name -> label
+    { label: 'My Orders', href: '/customer/orders', icon: Package },
+    { label: 'My Profile', href: '/customer/profile', icon: User },
+    { label: 'Addresses', href: '/customer/address', icon: MapPin },
+  ];
+
+  const links = user.role === 'ADMIN' ? adminLinks : user.role === 'VENDOR' ? vendorLinks : user.role === "CUSTOMER" ? customerLinks : [];
   const handleLogout = () => AuthService.logout();
 
   return (
