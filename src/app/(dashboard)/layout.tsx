@@ -137,7 +137,7 @@ const customerLinks = [
             <Avatar>
               <AvatarImage src={user.profileImg} />
               <AvatarFallback className="bg-blue-100 text-blue-700">
-                {user.name.charAt(0)}
+                {user?.name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
           </div>

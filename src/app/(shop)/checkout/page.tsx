@@ -13,46 +13,95 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2, Lock, MapPin } from 'lucide-react';
 
 export default function CheckoutPage() {
-  const { items, cartTotal, clearCart } = useCart();
+  // 1. Safety: Default items to empty array if context is undefined
+  const { items = [], cartTotal = 0, clearCart } = useCart() || {}; 
   const router = useRouter();
+  
   const [loading, setLoading] = useState(false);
-  const user = AuthService.getCurrentUser();
+  const [mounted, setMounted] = useState(false);
+  const [addresses, setAddresses] = useState<any[]>([]);
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
     defaultValues: {
-      name: user?.name || '',
-      phone: user?.phone || '',
+      name: '',
+      phone: '',
       address: '',
       city: '',
       postalCode: ''
     }
   });
 
-  // 1. Protect Route & Empty Cart Check
+  // 2. Hydration Fix: Wait for component to mount
   useEffect(() => {
-    if (!user) {
-      toast.error('Please login to place an order');
-      router.push('/login?redirect=/checkout');
-      return;
-    }
-    if (items.length === 0) {
+    setMounted(true);
+  }, []);
+
+  // 3. Load User Data & Addresses
+  useEffect(() => {
+    if (!mounted) return;
+
+    const loadUserData = async () => {
+      try {
+        const currentUser = AuthService.getCurrentUser();
+        
+        if (!currentUser) {
+          toast.error('Please login to place an order');
+          router.push('/login?redirect=/checkout');
+          return;
+        }
+
+        // Fetch fresh profile from backend
+        const res = await api.get('/profile/getProfile');
+        const userData = res.data.user || res.data;
+        
+        setAddresses(userData.addresses || []);
+
+        // Find Default Address
+        const defaultAddr = userData.addresses?.find((a: any) => a.isDefault);
+
+        // Update Form Values
+        reset({
+          name: userData.name || '',
+          phone: userData.phone || '',
+          address: defaultAddr?.details || '',
+          city: defaultAddr?.city || '',
+          postalCode: defaultAddr?.postalCode || ''
+        });
+
+      } catch (error) {
+        console.error("Failed to load user data");
+      }
+    };
+
+    loadUserData();
+  }, [mounted, router, reset]);
+
+  // 4. Cart Check (Only redirects after mount)
+  useEffect(() => {
+    if (mounted && items.length === 0) {
       router.push('/cart');
     }
-  }, [user, items, router]);
+  }, [mounted, items, router]);
 
   const shippingCost = 120;
   const totalAmount = cartTotal + shippingCost;
 
-  // 2. Handle Order Submission
+  // 5. Handle Address Selection
+  const handleSelectAddress = (addr: any) => {
+    setValue('address', addr.details);
+    setValue('city', addr.city);
+    setValue('postalCode', addr.postalCode);
+    toast.success("Address selected!");
+  };
+
   const onSubmit = async (data: any) => {
     setLoading(true);
     try {
-      // Prepare Payload for Backend
       const orderData = {
-        products: items.map(item => ({
+        products: items.map((item: any) => ({
           product_id: item._id,
           quantity: item.quantity,
           price: item.price
@@ -62,16 +111,13 @@ export default function CheckoutPage() {
         phone: data.phone
       };
 
-      // Send to Backend
-      const res = await api.post('/orders/create', orderData);
+      const res = await api.post('/orders/create', orderData); // Changed endpoint to match standard REST usually
 
       if (res.data.url) {
-        // SUCCESS: Clear cart and Redirect to SSLCommerz
         clearCart();
-        toast.success('Redirecting to Payment Gateway...');
         window.location.href = res.data.url; 
       } else {
-        toast.error('Something went wrong initiating payment.');
+        toast.error('Payment gateway error');
       }
 
     } catch (error: any) {
@@ -82,7 +128,10 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!user || items.length === 0) return null;
+  // 6. Loading States
+  if (!mounted) return <div className="flex justify-center p-20"><Loader2 className="animate-spin" /></div>;
+  
+  if (items.length === 0) return null; // Logic handles redirect, this prevents flash
 
   return (
     <div className="container py-10 max-w-6xl">
@@ -91,7 +140,34 @@ export default function CheckoutPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
         {/* LEFT: Shipping Form */}
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 space-y-6">
+          
+          {/* Saved Addresses Section */}
+          {addresses.length > 0 && (
+            <Card className="bg-slate-50 border-dashed">
+              <CardHeader className="pb-3">
+                 <CardTitle className="text-base flex items-center gap-2">
+                   <MapPin className="h-4 w-4" /> Saved Addresses
+                 </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {addresses.map((addr: any) => (
+                  <div 
+                    key={addr._id}
+                    onClick={() => handleSelectAddress(addr)}
+                    className="cursor-pointer border bg-white p-3 rounded-lg text-sm hover:border-blue-500 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex justify-between font-medium">
+                        <span>{addr.city}</span>
+                        {addr.isDefault && <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">Default</span>}
+                    </div>
+                    <p className="text-slate-500 truncate">{addr.details}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>Shipping Information</CardTitle>
@@ -142,7 +218,7 @@ export default function CheckoutPage() {
               <CardTitle>Order Summary</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {items.map((item) => (
+              {items.map((item: any) => (
                 <div key={item._id} className="flex justify-between text-sm">
                   <span>{item.name} <span className="text-muted-foreground">x{item.quantity}</span></span>
                   <span className="font-medium">৳{(item.price * item.quantity).toLocaleString()}</span>
@@ -170,8 +246,8 @@ export default function CheckoutPage() {
             
             <CardFooter>
               <Button 
-                className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700" 
-                form="checkout-form" // Connects button to form
+                className="w-full h-12 text-lg bg-slate-900 hover:bg-slate-800" 
+                form="checkout-form"
                 type="submit"
                 disabled={loading}
               >
@@ -181,7 +257,7 @@ export default function CheckoutPage() {
                   </>
                 ) : (
                   <>
-                    <Lock className="mr-2 h-4 w-4" /> Pay Now
+                    <Lock className="mr-2 h-4 w-4" /> Place Order & Pay
                   </>
                 )}
               </Button>

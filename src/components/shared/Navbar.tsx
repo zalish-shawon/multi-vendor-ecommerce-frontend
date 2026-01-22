@@ -82,7 +82,7 @@ export default function Navbar() {
                   >
                     <Avatar className="h-9 w-9">
                       <AvatarImage src={user.profileImg} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>

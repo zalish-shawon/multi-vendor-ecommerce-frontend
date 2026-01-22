@@ -42,10 +42,10 @@ export default function InvoicePage() {
       <div className="container max-w-4xl mx-auto">
         
         {/* Actions Bar (Hidden when printing) */}
-        <div className="flex justify-between items-center mb-6 print:hidden">
-          <Button variant="outline" asChild>
+        <div className="flex justify-end items-center mb-6 print:hidden">
+          {/* <Button variant="outline" asChild>
              <Link href="/orders"><ArrowLeft className="mr-2 h-4 w-4"/> Back to Orders</Link>
-          </Button>
+          </Button> */}
           <Button onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" /> Print / Save as PDF
           </Button>

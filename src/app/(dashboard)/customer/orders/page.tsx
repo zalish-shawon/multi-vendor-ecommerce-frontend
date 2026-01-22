@@ -2,16 +2,51 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import api from '@/lib/axios';
-import { Badge } from '@/components/ui/badge';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Loader2, 
+  Search, 
+  Eye, 
+  ChevronLeft, 
+  ChevronRight, 
+  FileText 
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
 
 export default function CustomerOrdersPage() {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Search & Pagination State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Modal State
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -24,81 +59,162 @@ export default function CustomerOrdersPage() {
     }
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  // --- FILTER & PAGINATION LOGIC ---
+  const filteredOrders = orders.filter((order) => 
+    order.transaction_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const handleCancel = async (id: string) => {
-    if (!confirm('Are you sure you want to cancel this order?')) return;
-    try {
-      await api.delete(`/orders/${id}`);
-      toast.success('Order cancelled');
-      fetchOrders(); // Refresh list
-    } catch (error) {
-      toast.error('Failed to cancel order');
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
     }
   };
 
-  // Basic Pay Later Implementation (Redirect to checkout with same items)
-  // Real implementation would reactivate the old transaction ID
-  const handlePayNow = (order: any) => {
-    toast.info("Redirection to payment gateway...");
-    // Ideally call an endpoint like /api/orders/retry/${order._id}
-    // For now, we inform the user this feature is tied to the backend
-  };
-
-  if (loading) return <Loader2 className="animate-spin h-8 w-8 mx-auto mt-20" />;
+  if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">My Orders</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <h1 className="text-2xl font-bold">My Orders</h1>
+        
+        {/* Search Input */}
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+          <Input 
+            placeholder="Search Transaction ID..." 
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1); // Reset to page 1 on search
+            }}
+          />
+        </div>
+      </div>
 
-      {orders.map((order: any) => (
-        <Card key={order._id}>
-          <div className="bg-slate-50 px-6 py-4 border-b flex justify-between items-center">
-            <div>
-              <p className="font-bold">{new Date(order.createdAt).toLocaleDateString()}</p>
-              <p className="text-sm text-muted-foreground">ID: {order.transaction_id}</p>
-            </div>
-            <div className="flex gap-2">
-               {/* Status Badge */}
-               <Badge className={order.payment_status === 'Success' ? 'bg-green-600' : 'bg-orange-500'}>
-                 {order.payment_status === 'Success' ? 'Paid' : 'Pending Payment'}
-               </Badge>
-            </div>
-          </div>
+      {/* DATA TABLE */}
+      <div className="border rounded-lg bg-white overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50">
+              <TableHead>Transaction ID</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {currentOrders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center h-32 text-slate-500">
+                  No orders found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              currentOrders.map((order) => (
+                <TableRow key={order._id}>
+                  <TableCell className="font-mono text-xs">{order.transaction_id}</TableCell>
+                  <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="font-bold">৳{order.total_amount}</TableCell>
+                  <TableCell>
+                    <Badge className={order.payment_status === 'Success' ? 'bg-green-100 text-green-700 hover:bg-green-100' : 'bg-orange-100 text-orange-700 hover:bg-orange-100'}>
+                      {order.payment_status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                     <span className="text-sm text-slate-600">{order.status}</span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setSelectedOrder(order)}
+                    >
+                      <Eye className="h-4 w-4 text-blue-600" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="flex justify-end items-center gap-2">
+           <span className="text-sm text-slate-500 mr-2">
+             Page {currentPage} of {totalPages}
+           </span>
+           <Button 
+             variant="outline" 
+             size="icon" 
+             onClick={() => handlePageChange(currentPage - 1)}
+             disabled={currentPage === 1}
+           >
+             <ChevronLeft className="h-4 w-4" />
+           </Button>
+           <Button 
+             variant="outline" 
+             size="icon" 
+             onClick={() => handlePageChange(currentPage + 1)}
+             disabled={currentPage === totalPages}
+           >
+             <ChevronRight className="h-4 w-4" />
+           </Button>
+        </div>
+      )}
+
+      {/* --- DETAILS POPUP (MODAL) --- */}
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>Transaction ID: {selectedOrder?.transaction_id}</DialogDescription>
+          </DialogHeader>
           
-          <CardContent className="p-6">
-             <div className="flex justify-between items-center">
-               <div className="space-y-1">
-                 {order.products.map((p: any, i: number) => (
-                   <div key={i}>{p.product_id?.name} (x{p.quantity})</div>
-                 ))}
-               </div>
-               <div className="text-right">
-                 <p className="text-xl font-bold">৳{order.total_amount}</p>
-               </div>
-             </div>
+          {selectedOrder && (
+            <div className="space-y-4">
+              {/* Product List */}
+              <div className="border rounded-md p-4 bg-slate-50 space-y-3 max-h-60 overflow-y-auto">
+                {selectedOrder.products.map((item: any, i: number) => (
+                  <div key={i} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0">
+                    <div>
+                      <p className="font-medium">{item.product_id?.name || 'Unknown Product'}</p>
+                      <p className="text-xs text-slate-500">Qty: {item.quantity} x ৳{item.price}</p>
+                    </div>
+                    <p className="font-bold">৳{item.price * item.quantity}</p>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Summary */}
+              <div className="flex justify-between items-center px-2">
+                 <span className="text-slate-500">Total Amount</span>
+                 <span className="text-xl font-bold text-blue-600">৳{selectedOrder.total_amount}</span>
+              </div>
 
-             {/* Action Buttons */}
-             <div className="flex justify-end gap-3 mt-6">
-               {order.status === 'Pending' && order.payment_status !== 'Success' && (
-                 <>
-                   <Button variant="outline" className="text-red-600 hover:bg-red-50" onClick={() => handleCancel(order._id)}>
-                     Cancel Order
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-4">
+                 {selectedOrder.payment_status === 'Success' && (
+                   <Button className="w-full gap-2" asChild>
+                     <Link href={`/invoice/${selectedOrder._id}`}>
+                        <FileText className="h-4 w-4" /> View Invoice
+                     </Link>
                    </Button>
-                   <Button onClick={() => handlePayNow(order)}>
-                     Pay Now
-                   </Button>
-                 </>
-               )}
-               {order.payment_status === 'Success' && (
-                 <Button variant="outline">View Invoice</Button>
-               )}
-             </div>
-          </CardContent>
-        </Card>
-      ))}
+                 )}
+            
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
