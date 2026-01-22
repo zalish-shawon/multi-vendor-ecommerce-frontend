@@ -2,14 +2,25 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react'; // <--- Import useState
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input'; // <--- Import Input
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, Tag } from 'lucide-react'; // <--- Import Tag Icon
+import { toast } from 'sonner';
 
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, cartTotal, clearCart } = useCart();
+  const [promoCode, setPromoCode] = useState(''); // <--- State for input
+
+  const handleApplyPromo = () => {
+    if (!promoCode) return;
+    // For now, just show a dummy message since backend isn't ready
+    toast.info(`Promo code "${promoCode}" is not valid yet.`);
+    setPromoCode('');
+  };
 
   if (items.length === 0) {
     return (
@@ -19,7 +30,7 @@ export default function CartPage() {
         </div>
         <h2 className="text-2xl font-bold tracking-tight">Your cart is empty</h2>
         <p className="text-muted-foreground max-w-sm">
-          Looks like you haven't added anything to your cart yet. Browse our products to find something you like.
+          Looks like you haven&apos;t added anything to your cart yet. Browse our products to find something you like.
         </p>
         <Button asChild className="bg-blue-600 hover:bg-blue-700 mt-4">
           <Link href="/">Start Shopping</Link>
@@ -28,9 +39,8 @@ export default function CartPage() {
     );
   }
 
-  // Calculate generic tax/shipping for display (You can refine this later)
-  const shipping = 120; // Fixed shipping for now
-  const tax = 0; // Tax logic if needed
+  const shipping = 120;
+  const tax = 0;
   const finalTotal = cartTotal + shipping + tax;
 
   return (
@@ -43,12 +53,10 @@ export default function CartPage() {
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
             <Card key={item._id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4">
-              {/* Image */}
               <div className="relative w-24 h-24 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
                 <Image src={item.image || '/placeholder.png'} alt={item.name} fill className="object-cover" />
               </div>
               
-              {/* Details */}
               <div className="flex-1 space-y-1">
                 <h3 className="font-semibold text-lg line-clamp-1">
                     <Link href={`/product/${item._id}`} className="hover:underline">
@@ -59,7 +67,6 @@ export default function CartPage() {
                 <p className="text-xs text-green-600 font-medium">In Stock</p>
               </div>
 
-              {/* Quantity Controls */}
               <div className="flex items-center gap-3">
                 <Button 
                     variant="outline" 
@@ -81,7 +88,6 @@ export default function CartPage() {
                 </Button>
               </div>
 
-              {/* Price & Remove */}
               <div className="text-right min-w-[80px]">
                 <div className="font-bold text-lg">৳{(item.price * item.quantity).toLocaleString()}</div>
                 <Button 
@@ -120,6 +126,20 @@ export default function CartPage() {
                         <span className="text-muted-foreground">Tax</span>
                         <span>৳{tax}</span>
                     </div>
+                    
+                    {/* --- NEW PROMO CODE SECTION --- */}
+                    <div className="pt-2">
+                        <div className="flex items-center gap-2">
+                            <Input 
+                                placeholder="Promo Code" 
+                                value={promoCode}
+                                onChange={(e) => setPromoCode(e.target.value)}
+                                className="bg-white"
+                            />
+                            <Button variant="outline" onClick={handleApplyPromo}>Apply</Button>
+                        </div>
+                    </div>
+
                     <Separator />
                     <div className="flex justify-between font-bold text-xl">
                         <span>Total</span>

@@ -56,7 +56,7 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     addToCart(product);
-    toast.success(`${product.name} added to cart!`);
+    // toast.success(`${product.name} added to cart!`);
   };
 
   if (loading) return <ProductSkeleton />;
