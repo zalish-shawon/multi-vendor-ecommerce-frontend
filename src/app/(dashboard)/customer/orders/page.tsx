@@ -238,7 +238,7 @@ export default function CustomerOrdersPage() {
                                     <p className="text-xs text-slate-500">
                                         {new Date(track.updatedAt).toLocaleDateString()} {new Date(track.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                     </p>
-                                    {track.note && <p className="text-xs text-slate-400 mt-1 italic">"{track.note}"</p>}
+                                    {track.note && <p className="text-xs text-slate-400 mt-1 italic">&apos;{track.note}&apos;</p>}
                                 </div>
                             </div>
                         ))
