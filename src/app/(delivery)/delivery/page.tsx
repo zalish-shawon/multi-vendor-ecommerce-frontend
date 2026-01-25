@@ -119,7 +119,7 @@ export default function DeliveryDashboard() {
                   <h4 className="font-semibold text-slate-500 text-xs uppercase tracking-wider">Customer Details</h4>
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-slate-400" />
-                    <span className="font-medium">{order.user_id?.name || 'Guest'}</span>
+                    <span className="font-medium">{order.customer_id?.name || 'Guest'}</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />

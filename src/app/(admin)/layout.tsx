@@ -13,7 +13,8 @@ import {
   Package, 
   LogOut, 
   Menu,
-  ShieldCheck 
+  ShieldCheck, 
+  Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -25,6 +26,7 @@ const Sidebar = ({ onLogout, pathname }: any) => {
     { label: 'User Management', href: '/admin/users', icon: Users },
     { label: 'All Orders', href: '/admin/orders', icon: ShoppingBag },
     { label: 'Products', href: '/admin/products', icon: Package },
+    { label: 'Settings', href: '/admin/profile', icon: Settings },
   ];
 
   return (
