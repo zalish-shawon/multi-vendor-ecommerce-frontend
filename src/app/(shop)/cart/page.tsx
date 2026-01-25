@@ -53,7 +53,7 @@ export default function CartPage() {
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
             <Card key={item._id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4">
-              <div className="relative w-24 h-24 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
+              <div className="relative w-24 h-24 bg-gray-100 rounded-md overflow-hidden shrink-0">
                 <Image src={item.image || '/placeholder.png'} alt={item.name} fill className="object-cover" />
               </div>
               

@@ -28,9 +28,13 @@ import {
   Eye, 
   ChevronLeft, 
   ChevronRight, 
-  FileText 
+  FileText,
+  CheckCircle2,
+  Circle,
+  Truck,
+  Package,
+  XCircle
 } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function CustomerOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -74,6 +78,27 @@ export default function CustomerOrdersPage() {
     }
   };
 
+  // --- HELPER: GET BADGE COLORS ---
+  const getDeliveryColor = (status: string) => {
+    switch (status) {
+      case 'Delivered': return 'bg-green-100 text-green-700 hover:bg-green-200 border-green-200';
+      case 'Out for Delivery': return 'bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200';
+      case 'Shipped': return 'bg-orange-100 text-orange-700 hover:bg-orange-200 border-orange-200';
+      case 'Cancelled': return 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200';
+      default: return 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200'; // Pending/Processing
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'Delivered': return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+      case 'Out for Delivery': return <Truck className="h-5 w-5 text-blue-600" />;
+      case 'Shipped': return <Package className="h-5 w-5 text-orange-600" />;
+      case 'Cancelled': return <XCircle className="h-5 w-5 text-red-600" />;
+      default: return <Circle className="h-5 w-5 text-slate-300" />;
+    }
+  };
+
   if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin" /></div>;
 
   return (
@@ -90,22 +115,22 @@ export default function CustomerOrdersPage() {
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
-              setCurrentPage(1); // Reset to page 1 on search
+              setCurrentPage(1); 
             }}
           />
         </div>
       </div>
 
       {/* DATA TABLE */}
-      <div className="border rounded-lg bg-white overflow-hidden">
+      <div className="border rounded-lg bg-white overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50">
               <TableHead>Transaction ID</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Total</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Payment Status</TableHead>
+              <TableHead>Delivery Status</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -122,21 +147,28 @@ export default function CustomerOrdersPage() {
                   <TableCell className="font-mono text-xs">{order.transaction_id}</TableCell>
                   <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="font-bold">৳{order.total_amount}</TableCell>
+                  
+                  {/* PAYMENT STATUS */}
                   <TableCell>
-                    <Badge className={order.payment_status === 'Success' ? 'bg-green-100 text-green-700 hover:bg-green-100' : 'bg-orange-100 text-orange-700 hover:bg-orange-100'}>
-                      {order.payment_status}
+                    <Badge className={
+                      order.payment_status === 'Success' 
+                        ? 'bg-green-500 hover:bg-green-600 text-white' 
+                        : 'bg-red-500 hover:bg-red-600 text-white'
+                    }>
+                      {order.payment_status || 'Pending'}
                     </Badge>
                   </TableCell>
+
+                  {/* DELIVERY STATUS */}
                   <TableCell>
-                     <span className="text-sm text-slate-600">{order.status}</span>
+                     <Badge variant="outline" className={`font-medium border ${getDeliveryColor(order.order_status)}`}>
+                        {order.order_status || 'Pending'}
+                     </Badge>
                   </TableCell>
+
                   <TableCell className="text-right">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => setSelectedOrder(order)}
-                    >
-                      <Eye className="h-4 w-4 text-blue-600" />
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(order)}>
+                     <Eye className="h-5 w-5 text-blue-600" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -149,23 +181,11 @@ export default function CustomerOrdersPage() {
       {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex justify-end items-center gap-2">
-           <span className="text-sm text-slate-500 mr-2">
-             Page {currentPage} of {totalPages}
-           </span>
-           <Button 
-             variant="outline" 
-             size="icon" 
-             onClick={() => handlePageChange(currentPage - 1)}
-             disabled={currentPage === 1}
-           >
+           <span className="text-sm text-slate-500 mr-2">Page {currentPage} of {totalPages}</span>
+           <Button variant="outline" size="icon" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
              <ChevronLeft className="h-4 w-4" />
            </Button>
-           <Button 
-             variant="outline" 
-             size="icon" 
-             onClick={() => handlePageChange(currentPage + 1)}
-             disabled={currentPage === totalPages}
-           >
+           <Button variant="outline" size="icon" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
              <ChevronRight className="h-4 w-4" />
            </Button>
         </div>
@@ -173,44 +193,83 @@ export default function CustomerOrdersPage() {
 
       {/* --- DETAILS POPUP (MODAL) --- */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
             <DialogDescription>Transaction ID: {selectedOrder?.transaction_id}</DialogDescription>
           </DialogHeader>
           
           {selectedOrder && (
-            <div className="space-y-4">
-              {/* Product List */}
-              <div className="border rounded-md p-4 bg-slate-50 space-y-3 max-h-60 overflow-y-auto">
-                {selectedOrder.products.map((item: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0">
-                    <div>
-                      <p className="font-medium">{item.product_id?.name || 'Unknown Product'}</p>
-                      <p className="text-xs text-slate-500">Qty: {item.quantity} x ৳{item.price}</p>
-                    </div>
-                    <p className="font-bold">৳{item.price * item.quantity}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
               
-              {/* Summary */}
-              <div className="flex justify-between items-center px-2">
-                 <span className="text-slate-500">Total Amount</span>
-                 <span className="text-xl font-bold text-blue-600">৳{selectedOrder.total_amount}</span>
+              {/* LEFT: Product List */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wider">Items</h3>
+                <div className="border rounded-md p-4 bg-slate-50 space-y-3 max-h-60 overflow-y-auto">
+                  {selectedOrder.products.map((item: any, i: number) => (
+                    <div key={i} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0">
+                      <div>
+                        <p className="font-medium">{item.product_id?.name || 'Unknown Product'}</p>
+                        <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                      </div>
+                      <p className="font-bold">৳{item.price * item.quantity}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between font-bold border-t pt-2">
+                    <span>Total</span>
+                    <span>৳{selectedOrder.total_amount}</span>
+                </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 mt-4">
+              {/* RIGHT: Tracking Timeline */}
+              <div className="space-y-4">
+                 <h3 className="font-semibold text-sm text-slate-500 uppercase tracking-wider">Delivery Status</h3>
+                 
+                 <div className="relative pl-4 border-l-2 border-slate-200 space-y-8 ml-2">
+                    {(selectedOrder.tracking_history && selectedOrder.tracking_history.length > 0) ? (
+                        selectedOrder.tracking_history.map((track: any, index: number) => (
+                            <div key={index} className="relative">
+                                <div className="absolute -left-[21px] top-0 bg-white p-1">
+                                    {getStatusIcon(track.status)}
+                                </div>
+                                <div className="pl-2">
+                                    <p className="font-bold text-sm">{track.status}</p>
+                                    <p className="text-xs text-slate-500">
+                                        {new Date(track.updatedAt).toLocaleDateString()} {new Date(track.updatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </p>
+                                    {track.note && <p className="text-xs text-slate-400 mt-1 italic">"{track.note}"</p>}
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="relative">
+                             <div className="absolute -left-[21px] top-0 bg-white p-1">
+                                <Circle className="h-5 w-5 text-blue-500 fill-blue-500" />
+                            </div>
+                            <div className="pl-2">
+                                <p className="font-bold text-sm">{selectedOrder.order_status || 'Pending'}</p>
+                                <p className="text-xs text-slate-500">Current Status</p>
+                            </div>
+                        </div>
+                    )}
+                 </div>
+              </div>
+
+              {/* BOTTOM ACTIONS */}
+              <div className="col-span-1 md:col-span-2 flex gap-3 mt-4 border-t pt-4">
                  {selectedOrder.payment_status === 'Success' && (
-                   <Button className="w-full gap-2" asChild>
+                   <Button className="flex-1 gap-2 bg-slate-900 hover:bg-slate-800" asChild>
                      <Link href={`/invoice/${selectedOrder._id}`}>
                         <FileText className="h-4 w-4" /> View Invoice
                      </Link>
                    </Button>
                  )}
-            
+                 <Button variant="secondary" className="flex-1" onClick={() => setSelectedOrder(null)}>
+                   Close
+                 </Button>
               </div>
+
             </div>
           )}
         </DialogContent>
