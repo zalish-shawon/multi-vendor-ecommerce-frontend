@@ -11,34 +11,68 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Loader2, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function AddProductPage() {
   const { register, handleSubmit, formState: { errors } } = useForm();
   const [loading, setLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+  
+  // Image State
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+
+  // Specification State
+  const [specs, setSpecs] = useState<{ key: string; value: string }[]>([
+    { key: '', value: '' }
+  ]);
+
   const router = useRouter();
 
-  // Handle File Selection
+  // --- 1. IMAGE HANDLERS (Your UI Logic) ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
       setSelectedFiles((prev) => [...prev, ...filesArray]);
-
-      // Create preview URLs
       const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
       setPreviews((prev) => [...prev, ...newPreviews]);
     }
   };
 
-  // Remove Image from Preview
   const removeImage = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
     setPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // --- 2. SPECIFICATION HANDLERS ---
+  const addSpec = () => setSpecs([...specs, { key: '', value: '' }]);
+  const removeSpec = (index: number) => setSpecs(specs.filter((_, i) => i !== index));
+  const updateSpec = (index: number, field: 'key' | 'value', text: string) => {
+    const newSpecs = [...specs];
+    newSpecs[index][field] = text;
+    setSpecs(newSpecs);
+  };
+
+  // --- 3. CLOUDINARY UPLOAD HELPER ---
+  const uploadToCloudinary = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    // ⚠️ IMPORTANT: Replace 'nexus_preset' with your ACTUAL Unsigned Upload Preset name
+    formData.append('upload_preset', 'nexus_preset'); 
+
+    formData.append('folder', 'multi-vendor-uploads');
+    const res = await fetch('https://api.cloudinary.com/v1_1/dr9ebtvd6/image/upload', {
+      method: 'POST', body: formData,
+    });
+    
+    if (!res.ok) throw new Error('Cloudinary upload failed');
+    const data = await res.json();
+    return data.secure_url;
+  };
+
+  // --- 4. SUBMIT FUNCTION (Fixed Logic) ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSubmit = async (data: any) => {
     if (selectedFiles.length === 0) {
       toast.error('Please upload at least one image');
@@ -46,35 +80,46 @@ export default function AddProductPage() {
     }
 
     setLoading(true);
-    const formData = new FormData();
-
-    // Append text fields
-    formData.append('name', data.name);
-    formData.append('description', data.description);
-    formData.append('price', data.price);
-    formData.append('stock', data.stock);
-    formData.append('category', data.category);
-
-    // Append images (Multer expects 'images' field name)
-    selectedFiles.forEach((file) => {
-      formData.append('images', file);
-    });
+    setUploadStatus('Uploading images...');
 
     try {
-      await api.post('/products/add', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Step A: Upload Images First
+      const imageUrls = await Promise.all(
+        selectedFiles.map((file) => uploadToCloudinary(file))
+      );
+
+      setUploadStatus('Creating product...');
+
+      // Step B: Filter valid specs (remove empty rows)
+      const validSpecs = specs.filter(s => s.key.trim() !== '' && s.value.trim() !== '');
+
+      // Step C: Build the JSON Payload
+      const payload = {
+        name: data.name,
+        description: data.description,
+        price: Number(data.price),
+        stock: Number(data.stock),
+        category: data.category,
+        images: imageUrls,       // Send the URLs, not files
+        specifications: validSpecs // Send the array
+      };
+
+      // Step D: Send to Backend (Note the route change to /vendor/products)
+      await api.post('vendor/products/', payload);
+
       toast.success('Product created successfully!');
-      router.push('/vendor/products'); // Redirect to table
+      router.push('/vendor/products'); 
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create product');
+      console.error(error);
+      toast.error(error.message || 'Failed to create product');
     } finally {
       setLoading(false);
+      setUploadStatus('');
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto pb-10">
       <Card>
         <CardHeader>
           <CardTitle>Add New Product</CardTitle>
@@ -82,17 +127,15 @@ export default function AddProductPage() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             
-            {/* 1. Basic Info */}
+            {/* Basic Info */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Product Name</Label>
                 <Input {...register('name', { required: true })} placeholder="e.g. iPhone 15" />
                 {errors.name && <span className="text-red-500 text-xs">Required</span>}
               </div>
-              
               <div className="space-y-2">
                 <Label>Category</Label>
-                {/* For now simple input, later we can use Select component */}
                 <Input {...register('category', { required: true })} placeholder="e.g. Electronics" />
               </div>
             </div>
@@ -106,7 +149,7 @@ export default function AddProductPage() {
               />
             </div>
 
-            {/* 2. Pricing & Inventory */}
+            {/* Pricing & Stock */}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label>Price (BDT)</Label>
@@ -118,10 +161,44 @@ export default function AddProductPage() {
               </div>
             </div>
 
-            {/* 3. Image Upload Area */}
-            <div className="space-y-2">
+            {/* --- SPECIFICATIONS SECTION --- */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex justify-between items-center">
+                <Label className="text-base font-semibold">Specifications</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addSpec} className="gap-2">
+                  <Plus size={14} /> Add Row
+                </Button>
+              </div>
+              
+              <div className="space-y-2 bg-slate-50 p-4 rounded-lg">
+                {specs.map((spec, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <Input 
+                      placeholder="Key (e.g. RAM)" 
+                      value={spec.key} 
+                      onChange={(e) => updateSpec(index, 'key', e.target.value)}
+                      className="flex-1"
+                    />
+                    <Input 
+                      placeholder="Value (e.g. 16GB)" 
+                      value={spec.value} 
+                      onChange={(e) => updateSpec(index, 'value', e.target.value)}
+                      className="flex-1"
+                    />
+                    {specs.length > 1 && (
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeSpec(index)} className="text-red-500 hover:bg-red-50">
+                        <Trash2 size={16} />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* --- IMAGE UPLOAD SECTION (Your Nice UI) --- */}
+            <div className="space-y-2 border-t pt-4">
               <Label>Product Images</Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors cursor-pointer relative bg-slate-50/50">
                 <input 
                   type="file" 
                   multiple 
@@ -146,12 +223,12 @@ export default function AddProductPage() {
               {previews.length > 0 && (
                 <div className="grid grid-cols-4 gap-4 mt-4">
                   {previews.map((src, index) => (
-                    <div key={index} className="relative group aspect-square border rounded-lg overflow-hidden">
+                    <div key={index} className="relative group aspect-square border rounded-lg overflow-hidden bg-white shadow-sm">
                       <Image src={src} alt="Preview" fill className="object-cover" />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                       >
                         <X size={12} />
                       </button>
@@ -161,8 +238,15 @@ export default function AddProductPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Product'}
+            <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white" disabled={loading}>
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> 
+                  {uploadStatus}
+                </div>
+              ) : (
+                'Create Product'
+              )}
             </Button>
 
           </form>
