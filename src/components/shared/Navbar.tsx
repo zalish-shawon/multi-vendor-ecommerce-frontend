@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Search, Menu } from "lucide-react";
+import { ShoppingCart, Search } from "lucide-react"; // Removed Menu as it wasn't used
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AuthService } from "@/services/auth.service";
@@ -24,17 +24,18 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    setUser(AuthService.getCurrentUser());
+    // 1. Get the user data
+    const currentUser = AuthService.getCurrentUser();
+    setUser(currentUser);
   }, []);
 
   const handleLogout = () => {
     AuthService.logout();
-    window.location.reload();
+    window.location.href = '/login'; // Redirect to login helps clear state better than reload
   };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      {/* 1. Alignment Fix: Matches the Hero Section Max-Width */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -44,7 +45,7 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Search Bar (Centered & Wider) */}
+          {/* Search Bar */}
           <div className="hidden md:flex flex-1 items-center justify-center max-w-2xl mx-8">
             <div className="relative w-full">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -81,8 +82,15 @@ export default function Navbar() {
                     className="relative h-9 w-9 rounded-full border border-gray-200"
                   >
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.profileImg} />
-                      <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                      {/* 👇 FIXED: Check both profileImg (User) AND store_logo (Vendor) */}
+                      <AvatarImage 
+                        src={user.profileImg || user.store_logo} 
+                        className="object-cover"
+                      />
+                      {/* 👇 FIXED: Check name OR store_name for fallback initials */}
+                      <AvatarFallback>
+                        {(user.name || user.store_name || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -90,7 +98,7 @@ export default function Navbar() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {user.name}
+                        {user.name || user.store_name}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         {user.email}
@@ -98,16 +106,19 @@ export default function Navbar() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  
+                  {/* Role Based Links */}
                   {user.role === "ADMIN" && (
                     <DropdownMenuItem asChild>
-                      <Link href="/admin">Admin Dashboard</Link>
+                      <Link href="/admin/dashboard">Admin Dashboard</Link>
                     </DropdownMenuItem>
                   )}
                   {user.role === "VENDOR" && (
                     <DropdownMenuItem asChild>
-                      <Link href="/vendor">Vendor Dashboard</Link>
+                      <Link href="/vendor/dashboard">Vendor Dashboard</Link>
                     </DropdownMenuItem>
                   )}
+                  
                   <DropdownMenuItem asChild>
                     <Link href="/orders">My Orders</Link>
                   </DropdownMenuItem>

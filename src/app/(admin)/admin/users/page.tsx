@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form'; // Import React Hook Form
+import { useForm } from 'react-hook-form';
 import api from '@/lib/axios';
 import { 
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
@@ -18,8 +18,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Trash2, Edit, Plus, UserPlus } from 'lucide-react';
+import { Trash2, Edit, UserPlus, Store } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -27,7 +28,7 @@ export default function UserManagementPage() {
   
   // Dialog States
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false); // New State
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   
   // Edit State
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -59,8 +60,8 @@ export default function UserManagementPage() {
       await api.post('/admin/users', data);
       toast.success(`${data.role} profile created successfully!`);
       setIsCreateOpen(false);
-      reset(); // Clear form
-      fetchUsers(); // Refresh list
+      reset(); 
+      fetchUsers(); 
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to create user");
     }
@@ -96,7 +97,7 @@ export default function UserManagementPage() {
     switch(role) {
       case 'ADMIN': return 'bg-purple-100 text-purple-700 border-purple-200';
       case 'DELIVERY': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'VENDOR': return 'bg-blue-100 text-blue-700 border-blue-200';
+      // Vendor case removed as they are no longer Users
       default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
@@ -105,59 +106,68 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
            <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
-           <p className="text-slate-500 text-sm">Manage access and roles for all users.</p>
+           <p className="text-slate-500 text-sm">Manage Customers, Admins, and Delivery staff.</p>
         </div>
         
-        {/* --- CREATE USER BUTTON --- */}
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 gap-2">
-              <UserPlus className="h-4 w-4" /> Create User
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Profile</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(onCreateUser)} className="space-y-4 py-2">
-               
-               <div className="space-y-2">
-                 <Label>Full Name</Label>
-                 <Input {...register('name', { required: true })} placeholder="e.g. Karim Delivery" />
-               </div>
+        <div className="flex gap-2">
+            {/* Link to Separate Vendor Management Page */}
+            <Link href="/admin/vendors">
+                <Button variant="outline" className="gap-2">
+                    <Store className="h-4 w-4" /> Manage Vendors
+                </Button>
+            </Link>
 
-               <div className="space-y-2">
-                 <Label>Email Address</Label>
-                 <Input type="email" {...register('email', { required: true })} placeholder="user@nexus.com" />
-               </div>
+            {/* --- CREATE USER BUTTON --- */}
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 gap-2">
+                <UserPlus className="h-4 w-4" /> Create User
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>Create New User</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit(onCreateUser)} className="space-y-4 py-2">
+                    
+                    <div className="space-y-2">
+                        <Label>Full Name</Label>
+                        <Input {...register('name', { required: true })} placeholder="e.g. John Doe" />
+                    </div>
 
-               <div className="space-y-2">
-                 <Label>Password</Label>
-                 <Input type="password" {...register('password', { required: true })} placeholder="••••••" />
-               </div>
+                    <div className="space-y-2">
+                        <Label>Email Address</Label>
+                        <Input type="email" {...register('email', { required: true })} placeholder="user@nexus.com" />
+                    </div>
 
-               <div className="space-y-2">
-                 <Label>Assign Role</Label>
-                 <Select onValueChange={(val) => setValue('role', val)}>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Select Role" />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="CUSTOMER">Customer</SelectItem>
-                     <SelectItem value="DELIVERY">Delivery Man</SelectItem>
-                     <SelectItem value="VENDOR">Vendor</SelectItem>
-                     <SelectItem value="ADMIN">Admin</SelectItem>
-                   </SelectContent>
-                 </Select>
-               </div>
+                    <div className="space-y-2">
+                        <Label>Password</Label>
+                        <Input type="password" {...register('password', { required: true })} placeholder="••••••" />
+                    </div>
 
-               <Button type="submit" className="w-full mt-4">Create Profile</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+                    <div className="space-y-2">
+                        <Label>Assign Role</Label>
+                        <Select onValueChange={(val) => setValue('role', val)}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="CUSTOMER">Customer</SelectItem>
+                            <SelectItem value="DELIVERY">Delivery Man</SelectItem>
+                            <SelectItem value="ADMIN">Admin</SelectItem>
+                            {/* ❌ VENDOR Removed: Create vendors in Vendor Management instead */}
+                        </SelectContent>
+                        </Select>
+                    </div>
+
+                    <Button type="submit" className="w-full mt-4">Create User</Button>
+                </form>
+            </DialogContent>
+            </Dialog>
+        </div>
       </div>
 
       <div className="border rounded-lg bg-white overflow-hidden shadow-sm">
@@ -175,8 +185,8 @@ export default function UserManagementPage() {
               <TableRow key={user._id}>
                 <TableCell className="flex items-center gap-3 font-medium">
                   <Avatar className="h-8 w-8">
-                     <AvatarImage src={user.profileImg} />
-                     <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
+                      <AvatarImage src={user.profileImg} />
+                      <AvatarFallback>{user.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   {user.name}
                 </TableCell>
@@ -206,8 +216,8 @@ export default function UserManagementPage() {
                              <SelectContent>
                                <SelectItem value="CUSTOMER">Customer</SelectItem>
                                <SelectItem value="DELIVERY">Delivery</SelectItem>
-                               <SelectItem value="VENDOR">Vendor</SelectItem>
                                <SelectItem value="ADMIN">Admin</SelectItem>
+                               {/* ❌ VENDOR Removed */}
                              </SelectContent>
                            </Select>
                            <Button onClick={handleUpdateRole} className="w-full">Save Changes</Button>

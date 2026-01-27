@@ -15,7 +15,8 @@ import {
   Menu,
   Star, 
   User,
-  MapPin
+  MapPin,
+  Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -96,6 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/vendor/products', label: 'My Products', icon: Package },
     { href: '/vendor/orders', label: 'Orders', icon: ShoppingBag },
     { href: '/vendor/reviews', label: 'Reviews', icon: Star },
+    { href: '/vendor/settings', label: 'Settings', icon: Settings },
   ];
 
 const customerLinks = [
