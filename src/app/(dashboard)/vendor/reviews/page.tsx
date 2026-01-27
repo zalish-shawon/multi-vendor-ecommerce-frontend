@@ -140,7 +140,7 @@ export default function VendorReviewsPage() {
                   {/* Comment & Reply Preview */}
                   <TableCell className="max-w-[300px]">
                      <div className="space-y-2">
-                       <p className="text-sm text-slate-600 line-clamp-2 italic">"{review.comment}"</p>
+                       <p className="text-sm text-slate-600 line-clamp-2 italic">&quot;{review.comment}&quot;</p>
                        {review.vendor_reply && (
                          <div className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100 truncate">
                             <span className="font-bold">You:</span> {review.vendor_reply}
@@ -190,7 +190,7 @@ export default function VendorReviewsPage() {
            
            <div className="space-y-4 py-2">
               <div className="bg-slate-50 p-4 rounded-lg border text-sm text-slate-600 italic">
-                 "{selectedReview?.comment}"
+                 &quot;{selectedReview?.comment}&quot;
               </div>
               
               <div className="space-y-2">
