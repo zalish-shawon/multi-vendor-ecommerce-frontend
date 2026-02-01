@@ -126,7 +126,7 @@ export default function HomePage() {
           </div>
 
           <div className="hidden md:flex w-full max-w-sm justify-center relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-full blur-2xl opacity-40 animate-pulse"></div>
+            <div className="absolute inset-0 bg-linear-to-tr from-blue-500 to-purple-600 rounded-full blur-2xl opacity-40 animate-pulse"></div>
             <div className="relative w-72 h-72 bg-slate-900/80 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center rotate-3 hover:rotate-0 transition-transform duration-500 group cursor-pointer">
               <Zap className="h-24 w-24 text-blue-400 group-hover:scale-110 transition-transform" />
               <div className="absolute bottom-6 text-slate-400 font-mono text-xs">
