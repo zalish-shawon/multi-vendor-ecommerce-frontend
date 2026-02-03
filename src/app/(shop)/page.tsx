@@ -208,7 +208,7 @@ export default function HomePage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full sm:w-auto rounded-full px-7 font-bold border-white/25 text-white hover:bg-white/10 hover:text-white"
+                    className="w-full sm:w-auto rounded-full px-7 font-bold border-white/25 text-black hover:bg-white/10 hover:text-white"
                   >
                     View Deals
                   </Button>
