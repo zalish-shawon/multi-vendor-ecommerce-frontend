@@ -20,6 +20,7 @@ export default function ProductCard({ product }: { product: any }) {
   };
 
   return (
+    <Link href={`/product/${product._id}`}>
     <Card className="group overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-white rounded-xl h-full flex flex-col">
       {/* 1. IMAGE CONTAINER */}
       <div className="relative aspect-square bg-gray-100 overflow-hidden">
@@ -80,5 +81,6 @@ export default function ProductCard({ product }: { product: any }) {
         </Button>
       </CardFooter>
     </Card>
+    </Link>
   );
 }
