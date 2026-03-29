@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, ArrowRight, ShoppingBag } from 'lucide-react';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 // import { runFireworks } from '@/lib/utils'; // Optional: We can make a fun confetti effect later
 
